@@ -8,46 +8,27 @@ const buildQueueInsights = async (token) => {
 
   const waitingTokens = await Token.find({
     status: "waiting",
-  }).populate("service");
-
-  const sameServiceQueue = waitingTokens
-    .filter(
-      (queueToken) =>
-        queueToken.service._id.toString() === populatedToken.service._id.toString()
-    )
-    .sort(
-      (firstToken, secondToken) =>
-        new Date(firstToken.createdAt) - new Date(secondToken.createdAt)
-    );
+    service: populatedToken.service._id,
+  }).sort({ createdAt: 1 });
 
   const position =
-    sameServiceQueue.findIndex(
-      (queueToken) => queueToken._id.toString() === populatedToken._id.toString()
-    ) + 1;
+    populatedToken.status === "waiting"
+      ? waitingTokens.findIndex(
+          (queueToken) => queueToken._id.toString() === populatedToken._id.toString()
+        ) + 1
+      : 0;
 
-  const higherOrEqualPriorityAhead = waitingTokens.filter((queueToken) => {
-    const isCreatedEarlier =
-      new Date(queueToken.createdAt) <= new Date(populatedToken.createdAt);
-
-    if (!isCreatedEarlier) {
-      return false;
-    }
-
-    const priorityWeight = {
-      high: 3,
-      medium: 2,
-      low: 1,
-    };
-
-    return (
-      queueToken._id.toString() !== populatedToken._id.toString() &&
-      priorityWeight[queueToken.priorityLevel] >=
-        priorityWeight[populatedToken.priorityLevel]
-    );
-  });
+  const tokensAhead =
+    populatedToken.status === "waiting"
+      ? waitingTokens.filter(
+          (queueToken) =>
+            queueToken._id.toString() !== populatedToken._id.toString() &&
+            new Date(queueToken.createdAt) <= new Date(populatedToken.createdAt)
+        )
+      : [];
 
   const estimatedWaitingTime =
-    higherOrEqualPriorityAhead.length * populatedToken.service.averageServiceTime;
+    tokensAhead.length * populatedToken.service.averageServiceTime;
 
   return {
     position,

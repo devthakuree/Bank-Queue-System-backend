@@ -70,10 +70,9 @@ const getTokenQueueStatus = async (request, response) => {
     }
 
     const waitingTokens = await Token.find({
-      status: "waiting",
-      service: token.service._id,
-      createdAt: { $lte: token.createdAt },
-    }).sort({ createdAt: 1 });
+    status: "waiting",
+    service: token.service._id,
+  }).sort({ createdAt: 1 });
 
     const position =
       token.status === "waiting"
@@ -82,16 +81,14 @@ const getTokenQueueStatus = async (request, response) => {
           ) + 1
         : 0;
 
-    const higherPriorityWaitingCount = await Token.countDocuments({
-      status: "waiting",
-      createdAt: { $lte: token.createdAt },
-      priorityLevel:
-        token.priorityLevel === "low"
-          ? { $in: ["high", "medium", "low"] }
-          : token.priorityLevel === "medium"
-            ? { $in: ["high", "medium"] }
-            : "high",
-    });
+  const tokensAhead =
+    token.status === "waiting"
+      ? waitingTokens.filter(
+          (queueToken) =>
+            queueToken._id.toString() !== token._id.toString() &&
+            new Date(queueToken.createdAt) <= new Date(token.createdAt)
+        )
+      : [];
 
     return response.json({
       token,
@@ -99,7 +96,7 @@ const getTokenQueueStatus = async (request, response) => {
         position,
         estimatedWaitingTime:
           token.status === "waiting"
-            ? higherPriorityWaitingCount * token.service.averageServiceTime
+            ? tokensAhead.length * token.service.averageServiceTime
             : 0,
       },
     });

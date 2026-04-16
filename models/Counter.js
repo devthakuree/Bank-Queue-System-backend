@@ -12,6 +12,11 @@ const counterSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    serviceType: {
+      type: String,
+      enum: ["cash", "account", "inquiry"],
+      default: null,
+    },
     status: {
       type: String,
       enum: ["active", "inactive"],

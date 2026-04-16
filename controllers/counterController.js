@@ -1,10 +1,9 @@
 const Counter = require("../models/Counter");
 const Token = require("../models/Token");
-const { selectNextToken } = require("../algorithms/multiLevelQueue");
 
 const createCounter = async (request, response) => {
   try {
-    const { name, counterNumber, supportedPriorities } = request.body;
+    const { name, counterNumber, supportedPriorities, serviceType } = request.body;
 
     if (!name || !counterNumber) {
       return response.status(400).json({
@@ -23,6 +22,7 @@ const createCounter = async (request, response) => {
     const counter = await Counter.create({
       name,
       counterNumber,
+      serviceType: serviceType || null,
       supportedPriorities:
         supportedPriorities && supportedPriorities.length
           ? supportedPriorities
@@ -76,20 +76,26 @@ const callNextToken = async (request, response) => {
       });
     }
 
-    const waitingTokens = await Token.find({
+    const allWaitingTokens = await Token.find({
       status: "waiting",
-      priorityLevel: { $in: counter.supportedPriorities },
     })
       .populate("service")
       .sort({ createdAt: 1 });
 
-    const selectedToken = selectNextToken(waitingTokens);
+    const waitingTokens =
+      counter.serviceType
+        ? allWaitingTokens.filter(
+            (token) => token.service?.serviceType === counter.serviceType
+          )
+        : allWaitingTokens;
 
-    if (!selectedToken) {
+    if (!waitingTokens.length) {
       return response.status(404).json({
         message: "No waiting tokens available.",
       });
     }
+
+    const selectedToken = waitingTokens[0];
 
     const updatedToken = await Token.findByIdAndUpdate(
       selectedToken._id,

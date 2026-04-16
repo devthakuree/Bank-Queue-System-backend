@@ -29,14 +29,22 @@ const defaultServices = [
 
 const defaultCounters = [
   {
-    name: "Counter 1",
+    name: "Cash Deposit / Withdrawal Counter",
     counterNumber: 1,
     supportedPriorities: ["high", "medium", "low"],
+    serviceType: "cash",
   },
   {
-    name: "Counter 2",
+    name: "Account Services Counter",
     counterNumber: 2,
     supportedPriorities: ["high", "medium", "low"],
+    serviceType: "account",
+  },
+  {
+    name: "General Inquiry Counter",
+    counterNumber: 3,
+    supportedPriorities: ["high", "medium", "low"],
+    serviceType: "inquiry",
   },
 ];
 
